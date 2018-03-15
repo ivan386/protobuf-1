@@ -98,6 +98,18 @@ func EncodeVarint(x uint64) []byte {
 	for n = 0; x > 127; n++ {
 		buf[n] = 0x80 | uint8(x&0x7F)
 		x >>= 7
+	}
+	buf[n] = uint8(x)
+	n++
+	return buf[0:n]
+}
+
+func EncodeCompactVarint(x uint64) []byte {
+	var buf [maxVarintBytes]byte
+	var n int
+	for n = 0; x > 127; n++ {
+		buf[n] = 0x80 | uint8(x&0x7F)
+		x >>= 7
 		x -= 1
 	}
 	buf[n] = uint8(x)
@@ -113,6 +125,15 @@ func (p *Buffer) EncodeVarint(x uint64) error {
 	for x >= 1<<7 {
 		p.buf = append(p.buf, uint8(x&0x7f|0x80))
 		x >>= 7
+	}
+	p.buf = append(p.buf, uint8(x))
+	return nil
+}
+
+func (p *Buffer) EncodeCompactVarint(x uint64) error {
+	for x >= 1<<7 {
+		p.buf = append(p.buf, uint8(x&0x7f|0x80))
+		x >>= 7
 		x -= 1
 	}
 	p.buf = append(p.buf, uint8(x))
@@ -124,6 +145,10 @@ func SizeVarint(x uint64) int {
 	return sizeVarint(x)
 }
 
+func SizeCompactVarint(x uint64) int {
+	return sizeCompactVarint(x)
+}
+
 func sizeVarint(x uint64) (n int) {
 	for {
 		n++
@@ -131,6 +156,18 @@ func sizeVarint(x uint64) (n int) {
 		if x == 0 {
 			break
 		}
+	}
+	return n
+}
+
+func sizeCompactVarint(x uint64) (n int) {
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+		x -= 1
 	}
 	return n
 }
